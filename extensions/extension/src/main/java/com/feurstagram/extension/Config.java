@@ -302,6 +302,20 @@ public final class Config {
     /** Comments: no comment buttons, no comment sheets. Lockable like every block_*. */
     public static boolean isCommentsBlocked() { return getBlocked("block_comments", false); }
 
+    // --- Ported from piko (crimera/piko, GPL-3.0; see NOTICE) ---
+    // All four default off: they are opt-in toggles on the Feed / Keep pages.
+    // Fingerprints live in patches/.../piko/ and are piko's 439 anchors, to be
+    // re-verified against the real 454 APK at patch time.
+
+    /** Videos don't start playing by themselves in the feed. */
+    public static boolean isVideoAutoplayDisabled() { return getBlocked("disable_video_autoplay", false); }
+    /** Replay the current story when it ends, instead of moving on. */
+    public static boolean loopStory() { return getBlocked("loop_story", false); }
+    /** Don't auto-advance to the next story when the current one ends. */
+    public static boolean disableStoryFlipping() { return getBlocked("disable_story_flipping", false); }
+    /** Links open in the external browser instead of Instagram's in-app browser. */
+    public static boolean isOpenLinksExternally() { return getBlocked("open_links_externally", false); }
+
     /** WindowManager.LayoutParams.FLAG_SECURE: the window shows black in screenshots and recordings. */
     private static final int FLAG_SECURE = 0x2000;
 
@@ -326,20 +340,24 @@ public final class Config {
         window.addFlags(flags);
     }
     /**
-     * Endless scrolling outside the (blocked) feed and Reels tab: swiping to the next reel in
+     * Endless scrolling outside the feed and Reels tab: swiping to the next reel in
      * any reel viewer, and the "more like this" feeds under a search/explore result.
+     * Off by default for the full client (piko-merge): reels swipe normally.
      */
-    public static boolean isEndlessScrollBlocked() { return getBlocked("block_endless_scroll", true); }
+    public static boolean isEndlessScrollBlocked() { return getBlocked("block_endless_scroll", false); }
     /**
      * Story viewer: the swipe-up gesture does nothing. No reply bar, no quick reactions,
      * no keyboard — the accidental swipe instead of left/right stays a no-op. Swipe-down
      * to dismiss and taps keep working.
+     * Off by default for the full client (piko-merge): swipe-up replies work.
      */
-    public static boolean isStorySwipeUpBlocked() { return getBlocked("block_story_swipe_up", true); }
+    public static boolean isStorySwipeUpBlocked() { return getBlocked("block_story_swipe_up", false); }
 
-    public static boolean isFeedBlocked()      { return getBlocked("block_feed", true); }
-    public static boolean isExploreBlocked()   { return getBlocked("block_explore", true); }
-    public static boolean isReelsBlocked()     { return getBlocked("block_reels", true); }
+    // Full client defaults (piko-merge): feed, explore and reels are ON; only ads
+    // and suggested content stay blocked. See isSuggestedBlocked/isAdsBlocked below.
+    public static boolean isFeedBlocked()      { return getBlocked("block_feed", false); }
+    public static boolean isExploreBlocked()   { return getBlocked("block_explore", false); }
+    public static boolean isReelsBlocked()     { return getBlocked("block_reels", false); }
     /**
      * Whether the "Friends" tab and its avatar facepile are hidden from the Reels
      * viewer's header. On by default: Instagram gates that entry point behind a
@@ -378,10 +396,9 @@ public final class Config {
      * (true = shown). Independent of the content blocks, so hiding the Reels
      * *icon* is decoupled from blocking Reels *content*. Home is deliberately not
      * configurable: long-pressing it is the only Settings entry point, so it must
-     * stay present and tappable. Reels defaults to hidden to preserve the previous
-     * behaviour (blocking reels used to also hide the tab).
+     * stay present and tappable. Full client (piko-merge): every tab shows by default.
      */
-    public static boolean isReelsTabShown() { return getBlocked("nav_show_reels", false); }
+    public static boolean isReelsTabShown() { return getBlocked("nav_show_reels", true); }
 
     /**
      * Whether the first-run coach mark (long-press Home to open settings) has
@@ -409,9 +426,9 @@ public final class Config {
         return false;
     }
 
-    /** Only Reels defaults to hidden; see {@link #isReelsTabShown()}. */
+    /** Every bottom-bar tab shows by default (full client, piko-merge). */
     public static boolean navDefault(String key) {
-        return !"nav_show_reels".equals(key);
+        return true;
     }
 
     /** Whether the bottom-bar icon for a {@code nav_show_*} key is currently shown. */

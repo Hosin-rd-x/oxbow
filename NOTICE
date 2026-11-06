@@ -19,7 +19,11 @@ This project is built with and attributes the following GPLv3 works:
 
 - Piko (https://github.com/crimera/piko) — some Instagram patch approaches
   (notably the network-blocking and clone techniques, and the hook points
-  behind Oxbow's downloads and ghost mode) are adapted from Piko.
+  behind Oxbow's downloads and ghost mode) are adapted from Piko. The four
+  patches in patches/.../piko/ (disable video autoplay, loop story, disable
+  story flipping, open links externally) and extensions/.../Links.java are
+  direct ports of Piko patches, keep Piko's copyright header, and are covered
+  by Piko's NOTICE (GPLv3 Section 7b), preserved in this repo as NOTICE-PIKO.
 
 - HushGram (https://github.com/SysAdminDoc/HushGram) — Oxbow's "Hide Meta AI" patch
   (patches/.../metaai/HideMetaAiPatch.kt and the extension's MetaAi.java) is adapted from

@@ -714,7 +714,7 @@ public final class Settings {
         Runnable refresh = preview::refresh;
         addRow(context, nav, "Home", "nav_show_home", Config.getBlocked("nav_show_home", true), refresh);
         addRow(context, nav, "Search", "nav_show_search", Config.getBlocked("nav_show_search", true), refresh);
-        addRow(context, nav, "Reels", "nav_show_reels", Config.getBlocked("nav_show_reels", false), refresh);
+        addRow(context, nav, "Reels", "nav_show_reels", Config.isReelsTabShown(), refresh);
         addRow(context, nav, "Create", "nav_show_create", Config.getBlocked("nav_show_create", true), refresh);
         addRow(context, nav, "Messages", "nav_show_direct", Config.getBlocked("nav_show_direct", true), refresh);
         addRow(context, nav, "Profile", "nav_show_profile", Config.getBlocked("nav_show_profile", true), refresh);
@@ -743,6 +743,7 @@ public final class Settings {
     private static void buildFeed(Context context, LinearLayout column) {
         LinearLayout feed = addGroup(context, column);
         addRow(context, feed, "Following feed only", "limit_following_feed", Config.isFollowingFeedOnly());
+        addRow(context, feed, "Disable video autoplay", "disable_video_autoplay", Config.isVideoAutoplayDisabled());
         sealGroup(context, feed);
     }
 
@@ -758,6 +759,7 @@ public final class Settings {
         addRow(context, keep, "Copy caption", "copy_caption", Config.isCopyCaptionEnabled());
         addRow(context, keep, "Download all slides", "download_all_slides", Config.isDownloadAllSlides());
         addRow(context, keep, "Clean shared links", "clean_links", Config.isCleanLinks());
+        addRow(context, keep, "Open links externally", "open_links_externally", Config.isOpenLinksExternally());
         sealGroup(context, keep);
 
         LinearLayout ghost = addSection(context, column, "Ghost mode");
@@ -767,6 +769,11 @@ public final class Settings {
         addRow(context, ghost, "Hide screenshots", "ghost_screenshot", Config.isScreenshotHidden());
         addRow(context, ghost, "Long-press New message", "ghost_shortcut", Config.isGhostShortcut());
         sealGroup(context, ghost);
+
+        LinearLayout stories = addSection(context, column, "Stories");
+        addRow(context, stories, "Replay story when it ends", "loop_story", Config.loopStory());
+        addRow(context, stories, "Don't auto-advance stories", "disable_story_flipping", Config.disableStoryFlipping());
+        sealGroup(context, stories);
     }
 
     private static String keepSummary() {
@@ -1071,7 +1078,7 @@ public final class Settings {
         static boolean isShown(String tab) {
             switch (tab) {
                 case "feed_tab": return Config.getBlocked("nav_show_home", true);
-                case "clips_tab": return Config.getBlocked("nav_show_reels", false);
+                case "clips_tab": return Config.isReelsTabShown();
                 case "direct_tab": return Config.getBlocked("nav_show_direct", true);
                 case "search_tab": return Config.getBlocked("nav_show_search", true);
                 case "creation_tab": return Config.getBlocked("nav_show_create", true);
@@ -1512,6 +1519,10 @@ public final class Settings {
         if (key.equals("ghost_screenshot")) return "Don't tell people when you screenshot their disappearing photo or video.";
         if (key.equals("ghost_shortcut")) return "Hold New message in the inbox to switch all four on or off.";
         if (key.equals("block_comments")) return "Hide comment buttons and never open comments.";
+        if (key.equals("disable_video_autoplay")) return "Videos wait for a tap instead of playing on their own.";
+        if (key.equals("open_links_externally")) return "Links open in your browser, not inside Instagram.";
+        if (key.equals("loop_story")) return "The story you're watching replays when it ends.";
+        if (key.equals("disable_story_flipping")) return "Stories stop at the end instead of moving to the next one.";
         if (key.equals("block_endless_scroll")) return "A reel you open stays one reel. No “more like this” feeds.";
         if (key.equals("block_story_swipe_up")) return "The swipe-up gesture on a story does nothing. No reply bar, no quick reactions.";
         return "Hide this surface in Instagram.";
