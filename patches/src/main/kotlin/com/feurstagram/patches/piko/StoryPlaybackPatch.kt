@@ -10,6 +10,22 @@
  * real 454 APK before these patches can be trusted on 454.0.0.54.77.
  * The two patches insert into the same method, so their jump labels are kept
  * distinct (piko_loop_* / piko_noflip) instead of piko's shared ":piko".
+ *
+ * 454 re-verification (round 2, from the real 454.0.0.54.77 dex):
+ * - Loop story: LIKELY-FAIL. No ReelViewerFragment method takes a single
+ *   Object parameter on 454, so StoryProgressCompletedFingerprint matches
+ *   nothing; and no ReelViewerFragment method at all contains the seek
+ *   INVOKE_INTERFACE (I,Z)V call piko's restart block needs, so the loop
+ *   mechanism itself has no 454 equivalent in this class. The 439
+ *   fingerprint is left as-is and the patch will probably fail again.
+ * - Disable story flipping: RE-ANCHORED to StoryItemFinishedFingerprint.
+ *   ReelViewerFragment.A1f(ReelItem)V is the story-item-finished handler
+ *   on 454: it logs "end_scene", reads "userSession", resets the photo
+ *   timer, and calls the advance (A0s) / exit (A1E) helpers. It is the
+ *   only ReelViewerFragment method loading both "userSession" and
+ *   "end_scene". Early return there stops the item-end processing, i.e.
+ *   the story does not advance. Note it also skips the seen-marking in
+ *   A0r, so a finished story may stay unmarked while flipping is off.
  */
 
 package com.feurstagram.patches.piko
@@ -37,6 +53,19 @@ internal object StoryProgressCompletedFingerprint : Fingerprint(
     definingClass = "Linstagram/features/stories/fragment/ReelViewerFragment;",
     strings = listOf("userSession"),
     parameters = listOf("Ljava/lang/Object;"),
+)
+
+/**
+ * 454 re-anchor for disableStoryFlipping only (see the file header): the
+ * story-item-finished handler ReelViewerFragment.A1f(ReelItem)V. Unique in
+ * the class by the "userSession" + "end_scene" strings. Loop story keeps
+ * the 439 fingerprint above and is expected to fail on 454.
+ */
+internal object StoryItemFinishedFingerprint : Fingerprint(
+    returnType = "V",
+    definingClass = "Linstagram/features/stories/fragment/ReelViewerFragment;",
+    strings = listOf("userSession", "end_scene"),
+    parameters = listOf("Lcom/instagram/model/reels/ReelItem;"),
 )
 
 @Suppress("unused")
@@ -117,7 +146,7 @@ val disableStoryFlippingPatch =
         extendWith(EXTENSION)
 
         execute {
-            StoryProgressCompletedFingerprint.method.apply {
+            StoryItemFinishedFingerprint.method.apply {
                 addInstructionsWithLabels(
                     0,
                     """

@@ -17,6 +17,11 @@ patches {
 val patchListGeneratorClasspath = configurations.create("patchListGeneratorClasspath")
 
 dependencies {
+    // Needed by the ported piko theme overlay builder (ThemeOverlayTable.kt):
+    // XMLTableBlockEncoder builds the .arsc overlay tables. Same coordinate
+    // piko uses; compileOnly, never bundled into the APK.
+    compileOnly("com.github.REAndroid:ARSCLib:a28c6fb2a7")
+
     // Provides app.morphe.util.* helpers (DOM, bytecode, references) used by the patches.
     implementation(libs.morphe.patches.library)
     compileOnly(libs.gson)

@@ -81,6 +81,52 @@ public final class Config {
         prefs.edit().putBoolean(key, value).apply();
     }
 
+    /** Non-boolean prefs (round-2 piko ports). Same prefs file, same null-safety. */
+    public static String getString(String key, String defaultValue) {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? defaultValue : prefs.getString(key, defaultValue);
+    }
+
+    public static void putString(String key, String value) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putString(key, value).apply();
+    }
+
+    public static float getFloat(String key, float defaultValue) {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? defaultValue : prefs.getFloat(key, defaultValue);
+    }
+
+    public static void putFloat(String key, float value) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putFloat(key, value).apply();
+    }
+
+    public static int getInt(String key, int defaultValue) {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? defaultValue : prefs.getInt(key, defaultValue);
+    }
+
+    public static void putInt(String key, int value) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putInt(key, value).apply();
+    }
+
+    public static Set<String> getStringSet(String key) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return Collections.emptySet();
+        return new HashSet<>(prefs.getStringSet(key, Collections.emptySet()));
+    }
+
+    public static void putStringSet(String key, Set<String> value) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putStringSet(key, value == null ? Collections.emptySet() : value).apply();
+    }
+
     /**
      * Toggles the permanent lock can freeze: the content blocks and the
      * navigation-bar icons. The nav icons are cosmetic, but hiding one is how
@@ -315,6 +361,54 @@ public final class Config {
     public static boolean disableStoryFlipping() { return getBlocked("disable_story_flipping", false); }
     /** Links open in the external browser instead of Instagram's in-app browser. */
     public static boolean isOpenLinksExternally() { return getBlocked("open_links_externally", false); }
+
+    // --- Ported from piko, round 2 (crimera/piko, GPL-3.0; see NOTICE) ---
+    // All defaults are stock behaviour (off). Fingerprints live in
+    // patches/.../piko/ and are piko's 439 anchors, re-verified against the
+    // real 454 APK at patch time where the port notes say so.
+
+    /** Declutter toggles: hide one UI element each. All default off. */
+    public static boolean hideReshareButton() { return getBlocked("hide_reshare_button", false); }
+    public static boolean hideNotesTray() { return getBlocked("hide_notes_tray", false); }
+    public static boolean hideGroupCreationOnSharesheet() { return getBlocked("hide_group_creation_on_sharesheet", false); }
+    public static boolean disableSwipeToCreate() { return getBlocked("disable_swipe_to_create", false); }
+    public static boolean disableComments() { return getBlocked("disable_comments", false); }
+    public static boolean disableExplore() { return getBlocked("disable_explore", false); }
+    public static boolean disableHighlights() { return getBlocked("disable_highlights", false); }
+    public static boolean disableStories() { return getBlocked("disable_stories", false); }
+    public static boolean disableDiscoverPeople() { return getBlocked("disable_discover_people", false); }
+    public static boolean hideStoriesTray() { return getBlocked("hide_stories_tray", false); }
+
+    /** Theme: Material You / AMOLED. Live state lives in MaterialYouTheme
+     *  (isMaterialYouEnabled / isAmoledEnabled); these share the same keys. */
+    public static boolean materialYouTheme() { return getBlocked("material_you_theme", false); }
+    public static boolean amoledTheme() { return getBlocked("amoled_theme", false); }
+
+    /** Navigation bar customisation (piko model, serialized by NavigationBarPatch). */
+    public static boolean customizeNavigationBar() { return getBlocked("customize_navigation_bar", false); }
+    public static String navigationTabs() { return getString("navigation_tabs", ""); }
+    public static void setNavigationTabs(String value) { putString("navigation_tabs", value); }
+    public static boolean removeEmptyBottomSpace() { return getBlocked("remove_empty_bottom_space", false); }
+    /** Like animation enum name; "ARES_LIKE_ACTIVATION" is the stock animation. */
+    public static String changeLikeAnimation() { return getString("change_like_animation", "ARES_LIKE_ACTIVATION"); }
+    public static void setChangeLikeAnimation(String value) { putString("change_like_animation", value); }
+
+    /** Story customisation. Ring size default 100.0f is the stock size. */
+    public static float customiseStoryRingSize() { return getFloat("customise_story_ring_size", 100.0f); }
+    public static void setCustomiseStoryRingSize(float value) { putFloat("customise_story_ring_size", value); }
+    /** "default" | "detailed" | "posttime" | "timeleft". */
+    public static String customiseStoryTimestamp() { return getString("customise_story_timestamp", "default"); }
+    public static void setCustomiseStoryTimestamp(String value) { putString("customise_story_timestamp", value); }
+    /** Reel-type JSON names to hide from the stories tray (empty = hide none). */
+    public static Set<String> filterStoryTypes() { return getStringSet("filter_story_by_type"); }
+    public static void setFilterStoryTypes(Set<String> value) { putStringSet("filter_story_by_type", value); }
+    /** "verified" and/or "unverified" author types to hide (empty = hide none). */
+    public static Set<String> filterStoryUserTypes() { return getStringSet("filter_story_by_user_type"); }
+    public static void setFilterStoryUserTypes(Set<String> value) { putStringSet("filter_story_by_user_type", value); }
+    public static int filterStoryMinItems() { return getInt("filter_story_min_story_items", 1); }
+    public static void setFilterStoryMinItems(int value) { putInt("filter_story_min_story_items", value); }
+    public static int filterStoryMaxItems() { return getInt("filter_story_max_story_items", 9999); }
+    public static void setFilterStoryMaxItems(int value) { putInt("filter_story_max_story_items", value); }
 
     /** WindowManager.LayoutParams.FLAG_SECURE: the window shows black in screenshots and recordings. */
     private static final int FLAG_SECURE = 0x2000;

@@ -8,6 +8,20 @@
  * they must be re-verified by the Morphe CLI patch run against the real 454 APK
  * before this patch can be trusted on 454.0.0.54.77. The external-open itself
  * is Oxbow's own Links.openExternally (no PikoUtils dependency).
+ *
+ * 454 re-verification (round 2, from the real 454.0.0.54.77 dex): LIKELY-FAIL.
+ * Both anchor strings exist on 454 ("Tracking.ARG_CLICK_SOURCE" in 12 methods,
+ * "TrackingInfo.ARG_MODULE_NAME" in 4 methods) but they never co-occur in a
+ * method returning Z, so InAppBrowserFunctionFingerprint matches nothing on
+ * 454 and the 439 fingerprint is left as-is. The closest 454 equivalent is
+ * LX/0FHH.A00, the in-app-browser intent builder, which loads both strings
+ * but returns an Intent, not a boolean, and takes the URL as a Uri, not a
+ * String — so piko's hook logic (MOVE_OBJECT_FROM16 after the first string
+ * gives the URL string; return the boolean) does not transfer. It was NOT
+ * re-anchored: its two callers do not null-check the returned Intent, so
+ * returning null to suppress the in-app browser risks a crash, and the safe
+ * adaptation (return an external ACTION_VIEW intent instead) needs caller
+ * verification first. Lead for a future round, not a forced port.
  */
 
 package com.feurstagram.patches.piko

@@ -1,6 +1,7 @@
 package com.feurstagram.extension;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -18,6 +19,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -29,6 +31,7 @@ import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -41,6 +44,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.feurstagram.extension.theme.MaterialYouTheme;
 
 /**
  * Feurstagram settings, shown as a full-screen page when the Home tab is
@@ -720,6 +725,16 @@ public final class Settings {
         addRow(context, nav, "Profile", "nav_show_profile", Config.getBlocked("nav_show_profile", true), refresh);
         sealGroup(context, nav);
 
+        // Round-2 piko port: Oxbow's own tab model (order + visibility +
+        // startup tab), separate from the icon toggles above. The patch gates
+        // all three hooks on the master toggle, so off means stock behaviour.
+        LinearLayout custom = addSection(context, column, "Custom tabs");
+        addRow(context, custom, "Customize navigation bar", "customize_navigation_bar", Config.customizeNavigationBar());
+        addRow(context, custom, "Remove empty bottom space", "remove_empty_bottom_space", Config.removeEmptyBottomSpace());
+        sealGroup(context, custom);
+        buildNavTabPicker(context, column);
+        buildNavStartupChoice(context, column);
+
         // Instagram drops tabs between versions (451 has no Create tab). A toggle
         // for a tab the live bar does not have would do nothing, so it is greyed
         // out; outside the app the order is a guess and every row stays live.
@@ -745,7 +760,44 @@ public final class Settings {
         addRow(context, feed, "Following feed only", "limit_following_feed", Config.isFollowingFeedOnly());
         addRow(context, feed, "Disable video autoplay", "disable_video_autoplay", Config.isVideoAutoplayDisabled());
         sealGroup(context, feed);
+
+        // Round-2 piko ports: one toggle per hidden element, all default off.
+        LinearLayout declutter = addSection(context, column, "Declutter");
+        addRow(context, declutter, "Hide reshare button", "hide_reshare_button", Config.hideReshareButton());
+        addRow(context, declutter, "Hide notes tray", "hide_notes_tray", Config.hideNotesTray());
+        addRow(context, declutter, "Hide group creation button on sharesheet", "hide_group_creation_on_sharesheet", Config.hideGroupCreationOnSharesheet());
+        addRow(context, declutter, "Disable swipe to create", "disable_swipe_to_create", Config.disableSwipeToCreate());
+        addRow(context, declutter, "Disable comments", "disable_comments", Config.disableComments());
+        addRow(context, declutter, "Disable explore", "disable_explore", Config.disableExplore());
+        addRow(context, declutter, "Disable highlights", "disable_highlights", Config.disableHighlights());
+        addRow(context, declutter, "Disable stories", "disable_stories", Config.disableStories());
+        addRow(context, declutter, "Disable discover people", "disable_discover_people", Config.disableDiscoverPeople());
+        addRow(context, declutter, "Hide stories tray", "hide_stories_tray", Config.hideStoriesTray());
+        sealGroup(context, declutter);
+
+        // Round-2 piko port: the like animation is one of Instagram's own
+        // built-in animations; ARES_LIKE_ACTIVATION is the stock one.
+        LinearLayout like = addSection(context, column, "Like animation");
+        buildChoiceOptions(context, like, LIKE_ANIMATION_VALUES, LIKE_ANIMATION_LABELS,
+                Config.changeLikeAnimation(), Config::setChangeLikeAnimation);
+        sealGroup(context, like);
     }
+
+    /** Piko's like-animation list (piko_array_change_like_animation[_val]). */
+    private static final String[] LIKE_ANIMATION_VALUES = {
+            "ARES_LIKE_ACTIVATION", "ANYWAY_LIKE_ACTIVATION", "RINGS_LIKE_ADRIAN",
+            "RINGS_LIKE_AKI_KOCHI", "RINGS_LIKE_BRIAN", "RINGS_LIKE_BRICKLEY",
+            "RINGS_LIKE_COLE", "RINGS_LIKE_DJAG", "RINGS_LIKE_DOLLY", "RINGS_LIKE_ELYSE",
+            "RINGS_LIKE_FILM", "RINGS_LIKE_FUTURA", "RINGS_LIKE_GABRIEL",
+            "RINGS_LIKE_GOLLORIA", "RINGS_LIKE_HOMESTEAD", "RINGS_LIKE_KIDS",
+            "RINGS_LIKE_LAUFEY", "RINGS_LIKE_LINDA", "RINGS_LIKE_MIMLES",
+            "RINGS_LIKE_NIGEL", "RINGS_LIKE_NINA", "RINGS_LIKE_OLIVIA",
+            "RINGS_LIKE_SEB", "RINGS_LIKE_TWINS", "RINGS_LIKE_TYSHAWN", "RINGS_LIKE_ZARNA"};
+    private static final String[] LIKE_ANIMATION_LABELS = {
+            "Default", "Anyway", "Adrian", "Aki kochi", "Brian", "Brickley",
+            "Cole", "DJAG", "Dolly", "Elyse", "Film", "Futura", "Gabriel",
+            "Golloria", "Homestead", "Kids", "Laufey", "Linda", "Mimles",
+            "Nigel", "Nina", "Olivia", "Seb", "Twins", "Tyshawn", "Zarna"};
 
     private static void buildLanding(Context context, LinearLayout column) {
         LinearLayout landing = addGroup(context, column);
@@ -774,7 +826,96 @@ public final class Settings {
         addRow(context, stories, "Replay story when it ends", "loop_story", Config.loopStory());
         addRow(context, stories, "Don't auto-advance stories", "disable_story_flipping", Config.disableStoryFlipping());
         sealGroup(context, stories);
+
+        // Round-2 piko ports: story ring size and timestamp. Ring size is a
+        // number (100 is the stock size); the timestamp is a choice list.
+        LinearLayout storyStyle = addSection(context, column, "Story style");
+        addNumberRow(context, storyStyle, "Customise story ring size",
+                "Size of the ring around story avatars. 100 is the stock size.",
+                String.valueOf(Config.customiseStoryRingSize()), true,
+                text -> {
+                    float value = Float.parseFloat(text);
+                    if (value < 10f) value = 10f;
+                    if (value > 200f) value = 200f;
+                    Config.setCustomiseStoryRingSize(value);
+                    return String.valueOf(value);
+                });
+        sealGroup(context, storyStyle);
+        LinearLayout storyTime = addSection(context, column, "Story timestamp");
+        buildChoiceOptions(context, storyTime, STORY_TIMESTAMP_VALUES, STORY_TIMESTAMP_LABELS,
+                Config.customiseStoryTimestamp(), Config::setCustomiseStoryTimestamp);
+        sealGroup(context, storyTime);
+
+        // Round-2 piko port: hide stories by category. Multi-select dialogs
+        // over piko's value lists (piko_array_reel_type[_val],
+        // piko_array_user_type[_val]); min/max are plain numbers.
+        LinearLayout filters = addSection(context, column, "Story filters");
+        addMultiSelectRow(context, filters, "Story types to hide",
+                "Hide stories of these types from the tray.",
+                REEL_TYPE_VALUES, REEL_TYPE_LABELS, Config.filterStoryTypes(),
+                Config::setFilterStoryTypes);
+        addMultiSelectRow(context, filters, "User types to hide",
+                "Hide stories from verified or unverified authors.",
+                new String[]{"unverified", "verified"},
+                new String[]{"Unverified", "Verified"}, Config.filterStoryUserTypes(),
+                Config::setFilterStoryUserTypes);
+        addNumberRow(context, filters, "Minimum story items",
+                "Hide stories with fewer items than this.",
+                String.valueOf(Config.filterStoryMinItems()), false,
+                text -> {
+                    int value = Integer.parseInt(text);
+                    if (value < 1) value = 1;
+                    if (value > 9999) value = 9999;
+                    Config.setFilterStoryMinItems(value);
+                    return String.valueOf(value);
+                });
+        addNumberRow(context, filters, "Maximum story items",
+                "Hide stories with more items than this.",
+                String.valueOf(Config.filterStoryMaxItems()), false,
+                text -> {
+                    int value = Integer.parseInt(text);
+                    if (value < 1) value = 1;
+                    if (value > 9999) value = 9999;
+                    Config.setFilterStoryMaxItems(value);
+                    return String.valueOf(value);
+                });
+        sealGroup(context, filters);
     }
+
+    /** Piko's timestamp list (piko_array_customise_story_timestamp[_val]). */
+    private static final String[] STORY_TIMESTAMP_VALUES = {"default", "detailed", "posttime", "timeleft"};
+    private static final String[] STORY_TIMESTAMP_LABELS = {"Default", "Detailed", "Post time", "Time left"};
+
+    /** Piko's reel-type list (piko_array_reel_type[_val]); labels are the
+     *  value names made readable (ads_reel -> "Ads reel"). */
+    private static final String[] REEL_TYPE_VALUES = {
+            "ads_reel", "ar_effect_preview", "archive_day_media_reel", "archive_day_reel",
+            "archive_friend_reel", "archive_map_reel", "archive_scheduled_for_deletion_reel",
+            "archive_shop_reel", "axe_reel", "birthday_highlights", "bloks", "broadcast_reel",
+            "daily_snapshot_reel", "election_reel", "empty_story_state_reel", "end_of_year",
+            "expiring_story_reel", "fan_club_story", "follow_versaries", "friend_map_reel",
+            "group_mention", "group_reel", "hallpass_reel", "highlight_reel",
+            "highlight_rewind_reel", "inactive_hallpass_reel", "mas_reel", "media_reshare",
+            "memory_reel", "my_week_reel", "netego_reel", "nux_reel", "private_story",
+            "prompt_sticker_reel", "reconsideration_injected_story", "shopping_auto_highlight_reel",
+            "shopping_pdp_reel", "shopping_smart_reel", "stars_welcome_reel",
+            "story_stationary_timeline_reel", "subscription_shoutout_mention",
+            "suggested_creator_reel", "suggested_user", "suggested_user_reel",
+            "superlative_reel", "third_party_app_story", "typed_container", "user_reel"};
+    private static final String[] REEL_TYPE_LABELS = {
+            "Ads reel", "Ar effect preview", "Archive day media reel", "Archive day reel",
+            "Archive friend reel", "Archive map reel", "Archive scheduled for deletion reel",
+            "Archive shop reel", "Axe reel", "Birthday highlights", "Bloks", "Broadcast reel",
+            "Daily snapshot reel", "Election reel", "Empty story state reel", "End of year",
+            "Expiring story reel", "Fan club story", "Follow versaries", "Friend map reel",
+            "Group mention", "Group reel", "Hallpass reel", "Highlight reel",
+            "Highlight rewind reel", "Inactive hallpass reel", "Mas reel", "Media reshare",
+            "Memory reel", "My week reel", "Netego reel", "Nux reel", "Private story",
+            "Prompt sticker reel", "Reconsideration injected story", "Shopping auto highlight reel",
+            "Shopping pdp reel", "Shopping smart reel", "Stars welcome reel",
+            "Story stationary timeline reel", "Subscription shoutout mention",
+            "Suggested creator reel", "Suggested user", "Suggested user reel",
+            "Superlative reel", "Third party app story", "Typed container", "User reel"};
 
     private static String keepSummary() {
         int ghost = (Config.isStorySeenHidden() ? 1 : 0) + (Config.isDmSeenHidden() ? 1 : 0)
@@ -788,6 +929,25 @@ public final class Settings {
         addRow(context, display, "Force dark (disable HDR)", "force_sdr", Config.isForceSdr());
         addRow(context, display, "Instagram popups", "hide_toasts", Config.arePopupsHidden());
         sealGroup(context, display);
+
+        // Round-2 piko port (Material You / AMOLED). These rows are NOT plain
+        // pref flips: the switch must apply the overlay through
+        // MaterialYouTheme (which recreates activities), the shown state is
+        // the live theme state, and each row is greyed out unless its theme
+        // is available on this phone (Android 12+ with the overlay ready;
+        // AMOLED also needs dark mode on).
+        LinearLayout theme = addSection(context, column, "Theme");
+        addThemeToggleRow(context, theme, "Material You",
+                "Instagram follows your wallpaper colours (Android 12+).",
+                MaterialYouTheme::isMaterialYouEnabled,
+                MaterialYouTheme::isMaterialYouAvailable,
+                MaterialYouTheme::requestMaterialYouChange);
+        addThemeToggleRow(context, theme, "AMOLED",
+                "Pure black instead of dark grey. Needs dark mode on.",
+                MaterialYouTheme::isAmoledEnabled,
+                () -> MaterialYouTheme.isAmoledAvailable() && MaterialYouTheme.canEnableAmoled(context),
+                MaterialYouTheme::requestAmoledChange);
+        sealGroup(context, theme);
     }
 
     private static void buildUpdates(Context context, LinearLayout column) {
@@ -1523,6 +1683,18 @@ public final class Settings {
         if (key.equals("open_links_externally")) return "Links open in your browser, not inside Instagram.";
         if (key.equals("loop_story")) return "The story you're watching replays when it ends.";
         if (key.equals("disable_story_flipping")) return "Stories stop at the end instead of moving to the next one.";
+        if (key.equals("hide_reshare_button")) return "Hides the reshare button on posts and reels.";
+        if (key.equals("hide_notes_tray")) return "Hides the notes tray in the DM section.";
+        if (key.equals("hide_group_creation_on_sharesheet")) return "Hides the “create group” button on the share sheet.";
+        if (key.equals("disable_swipe_to_create")) return "Swiping right on Home no longer opens the create screen.";
+        if (key.equals("disable_comments")) return "Blocks comments so they do not load.";
+        if (key.equals("disable_explore")) return "Blocks Explore so it stays empty.";
+        if (key.equals("disable_highlights")) return "Blocks profile highlights so they do not load.";
+        if (key.equals("disable_stories")) return "Blocks stories so they do not load.";
+        if (key.equals("disable_discover_people")) return "Blocks the “Discover people” section on profiles.";
+        if (key.equals("hide_stories_tray")) return "Hides the stories tray from the main feed.";
+        if (key.equals("customize_navigation_bar")) return "Let Oxbow choose which tabs show and in which order.";
+        if (key.equals("remove_empty_bottom_space")) return "Removes the gap below the bottom navigation bar.";
         if (key.equals("block_endless_scroll")) return "A reel you open stays one reel. No “more like this” feeds.";
         if (key.equals("block_story_swipe_up")) return "The swipe-up gesture on a story does nothing. No reply bar, no quick reactions.";
         return "Hide this surface in Instagram.";
@@ -1577,6 +1749,240 @@ public final class Settings {
             }
         };
         landingSync[0].run();
+    }
+
+    // --- Round-2 piko ports: choice / number / multi-select / theme rows ------
+
+    /** Saves a string-valued setting (choice lists). */
+    private interface StringChoiceSaver { void save(String value); }
+
+    /** Radio list for a string-valued setting, modelled on buildLandingOptions. */
+    private static void buildChoiceOptions(Context context, LinearLayout group,
+                                           String[] values, String[] labels,
+                                           String current, StringChoiceSaver saver) {
+        final List<RadioButton> marks = new ArrayList<>();
+        for (int i = 0; i < values.length; i++) {
+            final String value = values[i];
+            LinearLayout row = makeRow(context, group, labels[i], null);
+            RadioButton mark = new RadioButton(context);
+            mark.setClickable(false);
+            mark.setFocusable(false);
+            mark.setButtonTintList(buildStateList(PRIMARY, OUTLINE));
+            mark.setChecked(value.equals(current));
+            row.addView(mark);
+            marks.add(mark);
+            row.setOnClickListener(v -> {
+                saver.save(value);
+                Config.setNeedsRestart();
+                for (int j = 0; j < values.length; j++) marks.get(j).setChecked(values[j].equals(value));
+            });
+        }
+    }
+
+    /** Parses, clamps and stores a typed number; returns the text to display,
+     *  or throws NumberFormatException for non-numeric input. */
+    private interface NumberSaver { String save(String text); }
+
+    /** Tap-to-edit number row: opens a dialog with a numeric field. */
+    private static void addNumberRow(Context context, LinearLayout parent, String label,
+                                     String support, String currentText, boolean decimal,
+                                     NumberSaver saver) {
+        LinearLayout row = makeRow(context, parent, label, support);
+        TextView valueView = new TextView(context);
+        valueView.setText(currentText);
+        valueView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+        valueView.setTextColor(ON_SURFACE_VARIANT);
+        row.addView(valueView);
+        row.setOnClickListener(v -> {
+            EditText input = new EditText(context);
+            input.setInputType(InputType.TYPE_CLASS_NUMBER
+                    | (decimal ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0));
+            input.setText(currentText);
+            input.setSelection(input.getText().length());
+            new AlertDialog.Builder(context)
+                    .setTitle(label)
+                    .setView(input)
+                    .setPositiveButton("Save", (d, w) -> {
+                        String text = input.getText().toString().trim();
+                        if (text.isEmpty()) return;
+                        try {
+                            String shown = saver.save(text);
+                            Config.setNeedsRestart();
+                            valueView.setText(shown);
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(context, "That is not a number.", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+    }
+
+    /** Saves a set-valued setting (multi-select). */
+    private interface SetSaver { void save(Set<String> value); }
+
+    private static String multiSummary(Set<String> selected) {
+        if (selected == null || selected.isEmpty()) return "None hidden";
+        return selected.size() == 1 ? "1 hidden" : selected.size() + " hidden";
+    }
+
+    /** Tap-to-edit multi-select row: checkbox dialog over a fixed value list. */
+    private static void addMultiSelectRow(Context context, LinearLayout parent, String label,
+                                          String support, String[] values, String[] labels,
+                                          Set<String> current, SetSaver saver) {
+        LinearLayout row = makeRow(context, parent, label, support);
+        TextView summaryView = new TextView(context);
+        summaryView.setText(multiSummary(current));
+        summaryView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+        summaryView.setTextColor(ON_SURFACE_VARIANT);
+        row.addView(summaryView);
+        row.setOnClickListener(v -> {
+            boolean[] checked = new boolean[values.length];
+            for (int i = 0; i < values.length; i++) checked[i] = current.contains(values[i]);
+            new AlertDialog.Builder(context)
+                    .setTitle(label)
+                    .setMultiChoiceItems(labels, checked, (d, which, isChecked) -> checked[which] = isChecked)
+                    .setPositiveButton("Save", (d, w) -> {
+                        Set<String> next = new HashSet<>();
+                        for (int i = 0; i < values.length; i++) if (checked[i]) next.add(values[i]);
+                        saver.save(next);
+                        Config.setNeedsRestart();
+                        summaryView.setText(multiSummary(next));
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+    }
+
+    /** Single-method boolean supplier (avoids java.util.function on old APIs). */
+    private interface BoolCheck { boolean get(); }
+
+    /** Applies a theme change; false means the change was refused. */
+    private interface ThemeChange { boolean apply(Context context, boolean enabled); }
+
+    /**
+     * Switch row whose state comes from live theme state, not the raw pref
+     * (piko's rows work the same way: the switch applies the overlay and
+     * recreates activities, and greys out while unavailable).
+     */
+    private static void addThemeToggleRow(Context context, LinearLayout parent, String label,
+                                          String support, BoolCheck isOn, BoolCheck isAvailable,
+                                          ThemeChange change) {
+        LinearLayout row = makeRow(context, parent, label, support);
+        ExpressiveSwitch toggle = new ExpressiveSwitch(context);
+        toggle.setChecked(isOn.get());
+        toggle.setContentDescription(label);
+        boolean available = isAvailable.get();
+        toggle.setEnabled(available);
+        row.setEnabled(available);
+        row.setClickable(available);
+        if (!available) row.setAlpha(0.38f);
+        toggle.setOnCheckedChangeListener((btn, isChecked) -> {
+            if (!change.apply(context, isChecked)) {
+                btn.setChecked(!isChecked);
+                return;
+            }
+            Config.setNeedsRestart();
+        });
+        row.addView(toggle);
+        row.setOnClickListener(v -> {
+            if (toggle.isEnabled()) toggle.toggle();
+        });
+    }
+
+    // --- Navigation tab picker (round-2 piko port) -----------------------------
+
+    private static final String[] NAV_TAB_KEYS = {
+            "home", "reels", "messages", "search", "profile", "notifications", "create"};
+    private static final String[] NAV_TAB_LABELS = {
+            "Home", "Reels", "Messages", "Search", "Profile", "Notifications", "Create"};
+
+    private static String navTabLabel(NavigationBarPatch.Tab tab) {
+        for (int i = 0; i < NAV_TAB_KEYS.length; i++) {
+            if (NAV_TAB_KEYS[i].equals(tab.key())) return NAV_TAB_LABELS[i];
+        }
+        return tab.key();
+    }
+
+    private static void buildNavTabPicker(Context context, LinearLayout column) {
+        LinearLayout picker = addSection(context, column, "Show and reorder tabs");
+        Runnable rebuild = new Runnable() {
+            @Override public void run() {
+                picker.removeAllViews();
+                fillNavTabPicker(context, picker, this);
+                sealGroup(context, picker);
+            }
+        };
+        fillNavTabPicker(context, picker, rebuild);
+        sealGroup(context, picker);
+    }
+
+    private static void fillNavTabPicker(Context context, LinearLayout picker, Runnable rebuild) {
+        NavigationBarPatch.Config cfg = NavigationBarPatch.loadConfig();
+        List<NavigationBarPatch.Tab> order = new ArrayList<>(cfg.order());
+        Set<NavigationBarPatch.Tab> visible = new HashSet<>(cfg.visible());
+        for (int i = 0; i < order.size(); i++) {
+            final NavigationBarPatch.Tab tab = order.get(i);
+            final int index = i;
+            LinearLayout row = makeRow(context, picker, navTabLabel(tab),
+                    visible.contains(tab) ? "Shown in the bar" : "Hidden from the bar");
+            LinearLayout arrows = new LinearLayout(context);
+            arrows.setOrientation(LinearLayout.VERTICAL);
+            Button up = new Button(context);
+            up.setText("▲");
+            up.setAllCaps(false);
+            up.setMinHeight(0);
+            up.setMinimumHeight(0);
+            up.setPadding(dp(context, 8), 0, dp(context, 8), 0);
+            up.setEnabled(index > 0);
+            up.setOnClickListener(v -> {
+                List<NavigationBarPatch.Tab> next = new ArrayList<>(order);
+                java.util.Collections.swap(next, index, index - 1);
+                NavigationBarPatch.saveConfig(next, visible, cfg.startup());
+                rebuild.run();
+            });
+            Button down = new Button(context);
+            down.setText("▼");
+            down.setAllCaps(false);
+            down.setMinHeight(0);
+            down.setMinimumHeight(0);
+            down.setPadding(dp(context, 8), 0, dp(context, 8), 0);
+            down.setEnabled(index < order.size() - 1);
+            down.setOnClickListener(v -> {
+                List<NavigationBarPatch.Tab> next = new ArrayList<>(order);
+                java.util.Collections.swap(next, index, index + 1);
+                NavigationBarPatch.saveConfig(next, visible, cfg.startup());
+                rebuild.run();
+            });
+            arrows.addView(up);
+            arrows.addView(down);
+            row.addView(arrows);
+            ExpressiveSwitch toggle = new ExpressiveSwitch(context);
+            toggle.setChecked(visible.contains(tab));
+            toggle.setContentDescription(navTabLabel(tab));
+            toggle.setOnCheckedChangeListener((btn, isChecked) -> {
+                Set<NavigationBarPatch.Tab> next = new HashSet<>(visible);
+                if (isChecked) next.add(tab); else next.remove(tab);
+                NavigationBarPatch.saveConfig(order, next, cfg.startup());
+                rebuild.run();
+            });
+            row.addView(toggle);
+            row.setOnClickListener(v -> {
+                if (toggle.isEnabled()) toggle.toggle();
+            });
+        }
+    }
+
+    private static void buildNavStartupChoice(Context context, LinearLayout column) {
+        LinearLayout startup = addSection(context, column, "App startup tab");
+        NavigationBarPatch.Config cfg = NavigationBarPatch.loadConfig();
+        String current = cfg.startup() == null ? "home" : cfg.startup().key();
+        buildChoiceOptions(context, startup, NAV_TAB_KEYS, NAV_TAB_LABELS, current,
+                value -> {
+                    NavigationBarPatch.Tab tab = NavigationBarPatch.Tab.fromKey(value);
+                    NavigationBarPatch.saveConfig(cfg.order(), cfg.visible(), tab);
+                });
+        sealGroup(context, startup);
     }
 
     // --- Type, shape and control helpers --------------------------------------
