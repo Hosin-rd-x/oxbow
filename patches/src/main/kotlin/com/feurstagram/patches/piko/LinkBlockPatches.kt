@@ -31,6 +31,7 @@ package com.feurstagram.patches.piko
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -62,8 +63,11 @@ private fun Instruction.isUriLoad() =
  * Inject a call to [linksMethod] right after the request URI is loaded, so
  * the thrown IOException is caught as a normal network failure and the
  * blocked surface stays empty. Shared by the five link-blocking patches.
+ * Extension on BytecodePatchContext (same pattern as ReelModel.hookReelParser):
+ * Fingerprint.method needs the patch context, so a plain top-level helper
+ * cannot reach it.
  */
-private fun invokeLinkBlock(linksMethod: String) {
+private fun BytecodePatchContext.invokeLinkBlock(linksMethod: String) {
     DeclutterTigonStartRequestFingerprint.method.apply {
         val uriLoad = instructions.first { it.isUriLoad() }
         val uriRegister = (uriLoad as OneRegisterInstruction).registerA
